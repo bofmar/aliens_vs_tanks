@@ -51,6 +51,7 @@
 (define-struct tank (img x y))
 ;; Tank is (make-tank IMAGE NUMBER NUMBER)
 ;; interp. a rectangle with an x and y position
+(define T0 (make-tank TANK-SHAPE 0 TANKT-Y))
 (define T1 (make-tank TANK-SHAPE 20 TANKT-Y))
 
 ;; Bullet
@@ -65,31 +66,47 @@
 ;; interp. a points text with an x and y position
 (define P1 (make-points (text 0 FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y))
 
+;; AliensList is one of:
+;; - empty
+;; - (const Alien AliensList)
+(define AL1 (cons empty))
+(define AL2 (list A1 A2))
+
+;; BulletsList is one of:
+;; - empty
+;; - (const Bullet BulletsList)
+(define BL1 (cons empty))
+(define BL2 (list B1))
+
+(define-struct game (tank alienList bulletList points state))
+;; Game is (make-game Tank AlienList BulletList Points Boolean)
+;; interp. If state is true then the game goes on. Else it's game over.
+(define G1 (make-game T0 AL1 BL1 P1 true))
+
 
 ;; =================
 ;; Functions:
 
-;; WS -> WS
-;; start the world with ...
+;; Game -> Game
+;; start the world with initial state g, for example (main G1)
 ;; 
-(define (main ws)
-  (big-bang ws                   ; WS
-            (on-tick   tock)     ; WS -> WS
-            (to-draw   render)   ; WS -> Image
-            (stop-when ...)      ; WS -> Boolean
-            (on-mouse  ...)      ; WS Integer Integer MouseEvent -> WS
-            (on-key    ...)))    ; WS KeyEvent -> WS
+(define (main g)
+  (big-bang g									; g
+            (on-tick   handle-tick)             ; WS -> WS
+            (to-draw   render-world)))			; WS -> Image
+            ;;(stop-when ...)      ; WS -> Boolean
+            ;;(on-key    ...)))    ; WS KeyEvent -> WS
 
 ;; WS -> WS
 ;; produce the next ...
 ;; !!!
-(define (tock ws) ...)
+(define (handle-tick g) ...)
 
 
 ;; WS -> Image
 ;; render ... 
 ;; !!!
-(define (render ws) ...)
+(define (render-world g) ...)
 
 
 (test)
