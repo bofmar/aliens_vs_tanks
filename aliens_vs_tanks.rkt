@@ -3,11 +3,33 @@
 #reader(lib "htdp-beginner-abbr-reader.ss" "lang")((modname aliens_vs_tanks) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
 (require 2htdp/image)
 (require 2htdp/universe)
+(require test-engine/racket-tests)
 
 ;; Aliens vs Tanks
 
 ;; =================
 ;; Constants:
+;; World Constants
+(define WIDTH 600)
+(define HEIGHT 400)
+(define MTS (empty-scene WIDTH HEIGHT "black"))
+;; Tank Constants
+(define TANK-SHAPE (rectangle 60 30 "solid" "blue"))
+(define TANK-SPEED 5)
+;; Bullet Constants
+(define BULLTET-SHAPE (rectangle 10 30 "solid" "white"))
+(define BULLET-SPEED 5)
+;; ALien constants
+(define ALIEN-SHAPE (ellipse 60 30 "solid" "gray"))
+(define ALIEN-SPEED 5)
+(define SPAWN-Y 0)
+;; Points constants
+(define POINTS-X (/ WIDTH 2))
+(define POINTS-Y 30)
+(define FONT-COLOR "white")
+(define FONT-SIZE 16)
+
+
 
 
 ;; =================
@@ -41,3 +63,6 @@
 ;; render ... 
 ;; !!!
 (define (render ws) ...)
+
+
+(test)
