@@ -39,8 +39,31 @@
 ;; =================
 ;; Data definitions:
 
-;; WS is ... (give WS a better name)
+;; Alien
+(define-struct alien (img x y direction))
+;; Alien is (make-alien IMAGE NUMBER NUMBER BOOLEAN)
+;; interp. an ellipse with an x and y position and a true or false direction
+;; (true means the alien is movig left, false that it moves right)
+(define A1 (make-alien ALIEN-SHAPE 10 20 false)) ;; alien moving right
+(define A2 (make-alien ALIEN-SHAPE 10 20 true)) ;; alien moving left
 
+;; Tank
+(define-struct tank (img x y))
+;; Tank is (make-tank IMAGE NUMBER NUMBER)
+;; interp. a rectangle with an x and y position
+(define T1 (make-tank TANK-SHAPE 20 TANKT-Y))
+
+;; Bullet
+(define-struct bullet (img x y))
+;; Bullet is (make-bullet IMAGE NUMBER NUMBER)
+;; interp. a bullet with an x and y position
+(define B1 (make-bullet BULLTET-SHAPE 30 10))
+
+;; Points
+(define-struct points (img x y))
+;; Points is (make-points IMAGE NUMBER NUMBER)
+;; interp. a points text with an x and y position
+(define P1 (make-points (text 0 FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y))
 
 
 ;; =================
