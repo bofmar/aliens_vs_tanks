@@ -6,6 +6,11 @@
 (require test-engine/racket-tests)
 
 ;; Aliens vs Tanks
+;; A simple game where the player takes the role of a tank, tasked with defending
+;; the earth from the dastardly alien's invasion. The player can move left and right
+;; and fire bullets directly up. The aliens appear from the top of the screen and move
+;; on a 45 degree angle, either left or right. Game is over when an alien reaches the
+;; bottom of the screen.
 
 ;; =================
 ;; Constants:
@@ -16,6 +21,7 @@
 ;; Tank Constants
 (define TANK-SHAPE (rectangle 60 30 "solid" "blue"))
 (define TANK-SPEED 5)
+(define TANKT-Y 0)
 ;; Bullet Constants
 (define BULLTET-SHAPE (rectangle 10 30 "solid" "white"))
 (define BULLET-SPEED 5)
@@ -28,8 +34,6 @@
 (define POINTS-Y 30)
 (define FONT-COLOR "white")
 (define FONT-SIZE 16)
-
-
 
 
 ;; =================
