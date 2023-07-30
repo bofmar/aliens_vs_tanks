@@ -4,7 +4,6 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 (require test-engine/racket-tests)
-(require racket/list)
 
 ;; Aliens vs Tanks
 ;; A simple game where the player takes the role of a tank, tasked with defending
@@ -23,7 +22,7 @@
 (define TANK-HEIGHT 30)
 (define TANK-SHAPE (rectangle 60 TANK-HEIGHT "solid" "blue"))
 (define TANK-SPEED 5)
-(define TANK-Y (- HEIGHT (/ TANK-HEIGHT 2) 5))
+(define TANKT-Y (- HEIGHT (/ TANK-HEIGHT 2) 5))
 ;; Bullet Constants
 (define BULLTET-SHAPE (rectangle 10 30 "solid" "white"))
 (define BULLET-SPEED 5)
@@ -35,7 +34,7 @@
 (define POINTS-X (/ WIDTH 2))
 (define POINTS-Y 30)
 (define FONT-COLOR "white")
-(define FONT-SIZE 32)
+(define FONT-SIZE 16)
 
 
 ;; =================
@@ -54,8 +53,8 @@
 (define-struct tank (img x y))
 ;; Tank is (make-tank IMAGE NUMBER NUMBER)
 ;; interp. a rectangle with an x and y position
-(define T0 (make-tank TANK-SHAPE (/ WIDTH 2) TANK-Y))
-(define T1 (make-tank TANK-SHAPE 20 TANK-Y))
+(define T0 (make-tank TANK-SHAPE (/ WIDTH 2) TANKT-Y))
+(define T1 (make-tank TANK-SHAPE 20 TANKT-Y))
 
 ;; Bullet
 (define-struct bullet (img x y))
@@ -76,7 +75,6 @@
 ;; - (const Alien AliensList)
 (define AL1 empty)
 (define AL2 (list A1 A2))
-(define AL3 (list A2 A3))
 
 ;; BulletsList is one of:
 ;; - empty
@@ -112,28 +110,27 @@
 
 ;; Game -> Image
 ;; render all items in their propper positions
-(check-expect (render-world G1) (place-images
-                                 (list TANK-SHAPE (points-img P1))
-								 (list (make-posn (/ WIDTH 2) TANK-Y)
-									   (make-posn POINTS-X POINTS-Y)) MTS))
-(check-expect (render-world (make-game T1 (list A1 A3) (list B1 B2) P2 true))
+;; !!!
+(check-expect (render-world G1) (place-image TANK-SHAPE (/ WIDTH 2) TANKT-Y MTS))
+(check-expect (render-world (T1 (list A1 A3) (list B1 B2) P2 true))
 			  (place-images (list TANK-SHAPE ALIEN-SHAPE ALIEN-SHAPE BULLTET-SHAPE BULLTET-SHAPE (points-img P2))
-							(list (make-posn 20 TANK-Y) (make-posn 10 20)
+							(list (make-posn 20 TANKT-Y) (make-posn 10 20)
 								  (make-posn 20 30) (make-posn 30 810)
 								  (make-posn 10 900) (make-posn POINTS-X POINTS-Y)) MTS))
 
 (define (render-world g)
-	(place-images (get-images-list g)
-                      (get-positions g) MTS))
+	(place-images (list TANK-SHAPE TANK-SHAPE) (list (make-posn (tank-x (game-tank g)) TANKT-Y)
+													 (make-posn 80 100)) MTS))
 
 ;; Game -> ListOfImage
 ;; Takes the game and produces an image for every object in it
-(check-expect (get-images-list G1) (list TANK-SHAPE (points-img P1)))
+;; !!!
+(check-expect (get-images-list G1) (list TANK-SHAPE))
 (check-expect (get-images-list G2) (list TANK-SHAPE ALIEN-SHAPE ALIEN-SHAPE BULLTET-SHAPE BULLTET-SHAPE (points-img P2)))
 
 (define (get-images-list g)
-  (flatten (cons TANK-SHAPE (cons (get-alien-images (game-alienList g)) 
-		(cons (get-bullet-images (game-bulletList g)) (cons (points-img (game-points g)) empty))))))
+  (list TANK-SHAPE (get-alien-images (game-alienList g)) 
+		(get-bullet-images (game-bulletList g)) (points-img (game-points g))))
 																								
 ;; AliensList -> ListOfImage
 ;; Takes a list of aliens and returns their images
@@ -142,50 +139,16 @@
 
 (define (get-alien-images al)
   (cond [(empty? al) empty]
-		[else (cons ALIEN-SHAPE (get-alien-images (rest al)))]))
+		[else (cons ALIEN-SHAPE (cons (get-alien-images (rest al))))]))
 
-;; BulletList -> ListOfImage
-;; Takes a list of bullets and returns their images
+;; AliensList -> ListOfImage
+;; Takes a list of aliens and returns their images
 (check-expect (get-bullet-images empty) empty)
 (check-expect (get-bullet-images BL2) (list BULLTET-SHAPE))
 
 (define (get-bullet-images bl)
   (cond [(empty? bl) empty]
-		[else (cons BULLTET-SHAPE (get-bullet-images (rest bl)))]))
-
-;; Game -> ListOfPositions
-;; Takes the game and produces an posn for every object in it
-(check-expect (get-positions G1) 
-			  (list (make-posn (tank-x (game-tank G1)) TANK-Y) (make-posn POINTS-X POINTS-Y)))
-(check-expect (get-positions G2) (list (make-posn 20 TANK-Y) (make-posn 10 20)
-								  (make-posn 20 30) (make-posn 30 810)
-								  (make-posn 10 900) (make-posn POINTS-X POINTS-Y)))
-
-(define (get-positions g)
-  (flatten (cons (make-posn (tank-x (game-tank g)) TANK-Y)
-				 (cons (get-alien-positions (game-alienList g))
-					   (cons (get-bullet-positions (game-bulletList g))
-							 (cons (make-posn POINTS-X POINTS-Y) empty))))))
-																								
-;; AliensList -> ListOfPosn
-;; Takes a list of aliens and returns their posn
-(check-expect (get-alien-positions empty) empty)
-(check-expect (get-alien-positions AL3) (list (make-posn 10 20) (make-posn 20 30)))
-
-(define (get-alien-positions al)
-  (cond [(empty? al) empty]
-		[else (cons (make-posn (alien-x (first al)) (alien-y (first al)))
-							   (get-alien-positions (rest al)))]))
-
-;; BulletList -> ListOfPosn
-;; Takes a list of bullets and returns their positions
-(check-expect (get-bullet-positions empty) empty)
-(check-expect (get-bullet-positions BL2) (list (make-posn 30 810)))
-
-(define (get-bullet-positions bl)
-  (cond [(empty? bl) empty]
-		[else (cons (make-posn (bullet-x (first bl)) (bullet-y (first bl)))
-					(get-bullet-positions (rest bl)))]))
+		[else (list BULLTET-SHAPE (get-bullet-images (rest bl)))]))
 
 (test)
 (main G1)
