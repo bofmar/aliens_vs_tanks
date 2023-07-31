@@ -4,12 +4,11 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 (require test-engine/racket-tests)
-(require racket/list)
 
 ;; Aliens vs Tanks
 ;; A simple game where the player takes the role of a tank, tasked with defending
 ;; the earth from the dastardly alien's invasion. The player can move left and right
-;; and fire bullets directly up. The aliens appear from the top of the screen and move
+;; and fire bullets directly up. Pressing R will reset the game. The aliens appear from the top of the screen and move
 ;; on a 45 degree angle, either left or right. Game is over when an alien reaches the
 ;; bottom of the screen.
 
@@ -22,11 +21,11 @@
 (define BACKGROUND (empty-scene WIDTH HEIGHT "black"))
 ;; Tank Constants
 (define TANK
-  (overlay/xy (overlay (ellipse 28 8 "solid" "black")       ;tread center
+  (overlay/xy (overlay (ellipse 28 8 "solid" "grey")       ;tread center
                        (ellipse 30 10 "solid" "green"))     ;tread outline
               5 -14
-              (above (rectangle 5 10 "solid" "black")       ;gun
-                     (rectangle 20 10 "solid" "black"))))   ;main body
+              (above (rectangle 5 10 "solid" "green")       ;gun
+                     (rectangle 20 10 "solid" "green"))))   ;main body
 (define TANK-SPEED 2)
 (define TANK-HEIGHT/2 (/ (image-height TANK) 2))
 (define TANK-HEIGHT (image-height TANK))
