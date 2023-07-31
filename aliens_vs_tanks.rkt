@@ -19,7 +19,7 @@
 (define WIDTH  300)
 (define HEIGHT 500)
 (define INVADE-RATE 100)
-(define BACKGROUND (empty-scene WIDTH HEIGHT))
+(define BACKGROUND (empty-scene WIDTH HEIGHT "black"))
 ;; Tank Constants
 (define TANK
   (overlay/xy (overlay (ellipse 28 8 "solid" "black")       ;tread center
@@ -275,8 +275,96 @@
       (make-tank (tank-x t) (- (tank-dir t)))
       (make-tank (+ (tank-x t) (* TANK-SPEED (tank-dir t))) (tank-dir t))))
 
-(define (render g) g)
+;; =================================================================================================
+;; TO-DRAW Functions:
 
+;; Game -> Image
+;; render the game with all missiles, invaders and tank
+(check-expect (render (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                 (list (make-missile 150 300) (make-missile 100 200))
+                                 (make-tank 50 1)))
+              (place-image
+               INVADER
+               150
+               100
+               (place-image
+                INVADER
+                100
+                100
+                (place-image
+                 MISSILE
+                 150
+                 300
+                 (place-image
+                  MISSILE
+                  100
+                  200
+                  (place-image
+                   TANK
+                   50
+                   (- HEIGHT TANK-HEIGHT/2)
+                   BACKGROUND))))))
+
+(define (render s)
+  (render-invaders (game-invaders s)
+                   (render-missiles (game-missiles s)
+                                    (render-tank (game-tank s) BACKGROUND))))
+
+;; ListOfInvader Image -> Image
+;; render list of invader on a background image
+(check-expect (render-invaders (game-invaders GX) BACKGROUND)
+              (place-image
+               INVADER
+               150
+               100
+               (place-image
+                INVADER
+                100
+                100
+                BACKGROUND)))
+
+(define (render-invaders loi b)
+  (cond [(empty? loi) b]
+        [else
+         (place-image INVADER
+                      (invader-x (first loi))
+                      (invader-y (first loi))
+                      (render-invaders (rest loi) b))]))
+
+;; ListOfMissile Image -> Image
+;; render list of missiles on a background image
+(check-expect (render-missiles (game-missiles GX) BACKGROUND)
+              (place-image
+               MISSILE
+               150
+               300
+               (place-image
+                MISSILE
+                100
+                200
+                BACKGROUND)))
+
+(define (render-missiles lom b)
+  (cond [(empty? lom) b]
+        [else
+         (place-image MISSILE
+                      (missile-x (first lom))
+                      (missile-y (first lom))
+                      (render-missiles (rest lom) b))]))
+
+;; Tank Image -> Image
+;; render tank on a background image
+(check-expect (render-tank (game-tank GX) BACKGROUND)
+              (place-image
+               TANK
+               50
+               (- HEIGHT TANK-HEIGHT/2)
+               BACKGROUND))
+
+(define (render-tank t b)
+  (place-image TANK
+               (tank-x t)
+               (- HEIGHT TANK-HEIGHT/2)
+               b))
 (test)
-;;(main G1)
-;;(main G2)
+(main G0)
