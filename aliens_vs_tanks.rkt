@@ -47,58 +47,52 @@
 
 ;; =================
 ;; Data definitions:
+(define-struct tank (x dir))
+;; Tank is (make-tank Number Integer[-1, 1])
+;; interp. the tank location is x, HEIGHT - TANK-HEIGHT/2 in screen coordinates
+;;         the tank moves TANK-SPEED pixels per clock tick left if dir -1, right if dir 1
 
-;; Alien
-(define-struct alien (img x y direction))
-;; Alien is (make-alien IMAGE NUMBER NUMBER BOOLEAN)
-;; interp. an ellipse with an x and y position and a true or false direction
-;; (true means the alien is movig rigth, false that it moves left)
-(define A1 (make-alien ALIEN-SHAPE 10 20 false)) ;; alien moving right
-(define A2 (make-alien ALIEN-SHAPE 10 20 true)) ;; alien moving left
-(define A3 (make-alien ALIEN-SHAPE 20 30 true)) ;; alien moving left
+(define T0 (make-tank (/ WIDTH 2) 1))   ;center going right
+(define T1 (make-tank 50 1))            ;going right
+(define T2 (make-tank 50 -1))           ;going left
 
-;; Tank
-(define-struct tank (img x y))
-;; Tank is (make-tank IMAGE NUMBER NUMBER)
-;; interp. a rectangle with an x and y position
-(define T0 (make-tank TANK-SHAPE (/ WIDTH 2) TANK-Y))
-(define T1 (make-tank TANK-SHAPE 20 TANK-Y))
+(define-struct invader (x y dx))
+;; Invader is (make-invader Number Number Number)
+;; interp. the invader is at (x, y) in screen coordinates
+;;         the invader along x by dx pixels per clock tick
 
-;; Bullet
-(define-struct bullet (img x y))
-;; Bullet is (make-bullet IMAGE NUMBER NUMBER)
-;; interp. a bullet with an x and y position
-(define B1 (make-bullet BULLTET-SHAPE 30 810))
-(define B2 (make-bullet BULLTET-SHAPE 10 900))
-
-;; Points
-(define-struct points (img x y))
-;; Points is (make-points IMAGE NUMBER NUMBER)
-;; interp. a points text with an x and y position
-(define P1 (make-points (text (number->string 0) FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y))
-(define P2 (make-points (text (number->string 20) FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y))
-
-;; AliensList is one of:
-;; - empty
-;; - (const Alien AliensList)
-(define AL1 empty)
-(define AL2 (list A1 A2))
-(define AL3 (list A2 A3))
-
-;; BulletsList is one of:
-;; - empty
-;; - (const Bullet BulletsList)
-(define BL1 empty)
-(define BL2 (list B1))
-
-(define-struct game (tank alienList bulletList points state))
-;; Game is (make-game Tank AlienList BulletList Points Boolean)
-;; interp. If state is true then the game goes on. Else it's game over.
-(define G1 (make-game T0 AL1 BL1 P1 true))
-(define G2 (make-game T1 (list A1 A3) (list B1 B2) P2 true))
-(define G3 (make-game T0 (list (make-alien ALIEN-SHAPE 10 10 true)) (list (make-bullet BULLTET-SHAPE 10 10)) P1 true)) ;; for testing killing aliens
+(define I1 (make-invader 150 100 12))           ;not landed, moving right
+(define I2 (make-invader 150 HEIGHT -10))       ;exactly landed, moving left
+(define I3 (make-invader 150 (+ HEIGHT 10) 10)) ;> landed, moving right
 
 
+(define-struct missile (x y))
+;; Missile is (make-missile Number Number)
+;; interp. the missile's location is x y in screen coordinates
+
+(define M1 (make-missile 150 300))                       ;not hit U1
+(define M2 (make-missile (invader-x I1) (+ (invader-y I1) 10)))  ;exactly hit U1
+(define M3 (make-missile (invader-x I1) (+ (invader-y I1)  5)))  ;> hit U1
+
+(define-struct game (invaders missiles tank))
+;; Game is (make-game  (listof Invader) (listof Missile) Tank)
+;; interp. the current state of a space invaders game
+;;         with the current invaders, missiles and tank position
+
+(define G0 (make-game empty empty T0))
+(define G1 (make-game empty empty T1))
+(define G2 (make-game (list I1) (list M1) T1))
+(define G3 (make-game (list I1 I2) (list M1 M2) T1))
+
+(define GX (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                      (list (make-missile 150 300) (make-missile 100 200))
+                      (make-tank 50 1)))
+(define G4 (make-game (list (make-invader 150 100 1.5) (make-invader 100 100 -1.5))
+                      (list (make-missile 150 300) (make-missile 100 200))
+                      (make-tank 50 1)))
+
+(define LOM1 (list M1 M2 (make-missile 100 200)))
+(define LOI1 (list I1 (make-invader 100 100 -10)))
 
 ;; =================
 ;; Functions:
