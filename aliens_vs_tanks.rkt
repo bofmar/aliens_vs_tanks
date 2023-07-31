@@ -16,27 +16,34 @@
 ;; =================
 ;; Constants:
 ;; World Constants
-(define WIDTH 600)
-(define HEIGHT 1000)
-(define MTS (empty-scene WIDTH HEIGHT "black"))
+(define WIDTH  300)
+(define HEIGHT 500)
+(define INVADE-RATE 100)
+(define BACKGROUND (empty-scene WIDTH HEIGHT))
 ;; Tank Constants
-(define TANK-HEIGHT 30)
-(define TANK-SHAPE (rectangle 60 TANK-HEIGHT "solid" "blue"))
-(define TANK-SPEED 5)
-(define TANK-Y (- HEIGHT (/ TANK-HEIGHT 2) 5))
-;; Bullet Constants
-(define BULLTET-SHAPE (rectangle 10 30 "solid" "white"))
-(define BULLET-SPEED 5)
-;; ALien constants
-(define ALIEN-SHAPE (ellipse 60 30 "solid" "gray"))
-(define ALIEN-SPEED 5)
-(define SPAWN-Y 0)
-;; Points constants
-(define POINTS-X (/ WIDTH 2))
-(define POINTS-Y 30)
-(define FONT-COLOR "white")
-(define FONT-SIZE 32)
-
+(define TANK
+  (overlay/xy (overlay (ellipse 28 8 "solid" "black")       ;tread center
+                       (ellipse 30 10 "solid" "green"))     ;tread outline
+              5 -14
+              (above (rectangle 5 10 "solid" "black")       ;gun
+                     (rectangle 20 10 "solid" "black"))))   ;main body
+(define TANK-SPEED 2)
+(define TANK-HEIGHT/2 (/ (image-height TANK) 2))
+(define TANK-HEIGHT (image-height TANK))
+(define TANK-WIDTH/2 (/ (image-width TANK) 2))
+;; Missile Constants
+(define MISSILE-SPEED 10)
+(define HIT-RANGE 10)
+(define MISSILE (ellipse 5 15 "solid" "red"))
+(define MISSILE-HEIGHT/2 (/ (image-height MISSILE) 2))
+;; Invader constants
+(define INVADER
+  (overlay/xy (ellipse 10 15 "outline" "blue")              ;cockpit cover
+              -5 6
+              (ellipse 20 10 "solid"   "blue")))            ;saucer
+(define INVADER-X-SPEED 1.5)  ;speeds (not velocities) in pixels per tick
+(define INVADER-Y-SPEED 1.5)
+(define INVADER-WIDTH/2 (/ (image-width INVADER) 2))
 
 ;; =================
 ;; Data definitions:
@@ -89,7 +96,7 @@
 ;; interp. If state is true then the game goes on. Else it's game over.
 (define G1 (make-game T0 AL1 BL1 P1 true))
 (define G2 (make-game T1 (list A1 A3) (list B1 B2) P2 true))
-(define G3 (make-game T0 (list (make-alien ALIEN-SHAPE 10 10) (make-bullet BULLTET-SHAPE 10 10) P1 true))) ;; for testing killing aliens
+(define G3 (make-game T0 (list (make-alien ALIEN-SHAPE 10 10 true)) (list (make-bullet BULLTET-SHAPE 10 10)) P1 true)) ;; for testing killing aliens
 
 
 
@@ -122,6 +129,14 @@
              (advance-bullets (game-bulletList g))
              (game-points g)
              true))
+
+;; Game -> Game
+;; Consumes the current game state and removes items that have collided
+(check-expect (filter-colided G1) G1)
+(check-expect (filter-colided G3) (make-game T0 empty empty (make-points (text (number->string 1) FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y) true))
+
+(define (filter-colided g)
+  (
 
 ;; AlienList -> AlienList
 ;; Advance all the aliens
@@ -157,10 +172,11 @@
 (check-expect (advance-bullets empty) empty)
 (check-expect (advance-bullets BL2) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
 (check-expect (advance-bullets (list (make-bullet BULLTET-SHAPE 10 HEIGHT))) empty) ;;remove bullets when they go out of the screen
+(check-expect (advance-bullets (list (make-bullet BULLTET-SHAPE 10 HEIGHT) B1)) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
 
 (define (advance-bullets bl)
 		(cond [(empty? bl) empty]
-			  [(> (bullet-y (fist bl)) HEIGHT) (cons empty (advance-bullets (rest bl)))]
+			  [(> (+ (bullet-y (first bl)) BULLET-SPEED) HEIGHT) (advance-bullets (rest bl))]
 			  [else (cons (make-bullet BULLTET-SHAPE (bullet-x (first bl)) (- (bullet-y (first bl)) BULLET-SPEED))
 						  (advance-bullets (rest bl)))]))
 		
