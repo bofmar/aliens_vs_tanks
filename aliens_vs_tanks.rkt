@@ -101,156 +101,181 @@
 ;; start the world with initial state g, for example (main G1)
 ;; 
 (define (main g)
-  (big-bang g									; g
-            (on-tick   handle-tick)             ; g -> g
-            (to-draw   render-world)))			; g -> Image
-            ;;(stop-when ...)      ; WS -> Boolean
-            ;;(on-key    ...)))    ; WS KeyEvent -> WS
+  (big-bang g                       ; Game
+    (on-tick   update-game)         ; Game -> Game
+    (to-draw   render)))              ; Game -> Image
+    ;;(stop-when hit-floor? render)   ; Game -> Boolean
+    ;;(on-key    handle-key)))        ; Game KeyEvent -> Game
+
+;; =================
+;; ON-TICK Functions
 
 ;; Game -> Game
 ;; produce the next game state
-;; !!!
-(check-expect (handle-tick G1) G1) ;; Return the same world if no enemies and bullets exist
-(check-expect (handle-tick G2) (make-game T1 (list (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false) 
-												   (make-alien ALIEN-SHAPE (+ 20 ALIEN-SPEED) (+ 30 ALIEN-SPEED) true))
-										  (list (make-bullet BULLTET-SHAPE 30 (- 810  BULLET-SPEED))
-												(make-bullet BULLTET-SHAPE 10 (- 900  BULLET-SPEED)))
-										  P2 true)) ;; advance the game normaly
+(check-random (update-game (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                      (list (make-missile 150 300) (make-missile 100 200))
+                                      (make-tank 50 1)))
+              (if (< (random INVADE-RATE) 5)
+                  (make-game (list (make-invader 162 112 12) 
+								   (make-invader 88 112 -12)
+								   (make-invader (random WIDTH) -10 INVADER-X-SPEED))
+                             (list (make-missile 150 (- 300 MISSILE-SPEED)) 
+								   (make-missile 100 (- 200 MISSILE-SPEED)))
+                             (make-tank (+ 50 TANK-SPEED) 1))
+                  (make-game (list (make-invader 162 112 12) (make-invader 88 112 -12))
+                             (list (make-missile 150 290) (make-missile 100 190))
+                             (make-tank (+ 50 TANK-SPEED) 1))))
 
-(define (handle-tick g)
-  (make-game (game-tank g)
-             (advance-aliens (game-alienList g))
-             (advance-bullets (game-bulletList g))
-             (game-points g)
-             true))
+(define (update-game s)
+  (make-game (update-invaders (update-loi (game-missiles s) (game-invaders s)))
+             (update-missiles (update-lom (game-missiles s) (game-invaders s)))
+             (update-tank (game-tank s))))
 
-;; Game -> Game
-;; Consumes the current game state and removes items that have collided
-(check-expect (filter-colided G1) G1)
-(check-expect (filter-colided G3) (make-game T0 empty empty (make-points (text (number->string 1) FONT-SIZE FONT-COLOR) POINTS-X POINTS-Y) true))
+;; ListOfMissile ListOfInvader -> ListOfMissile
+;; remove the missile that hits an invader (from the list)
+(check-expect (update-lom LOM1 LOI1) (list M1 (make-missile 100 200)))
 
-(define (filter-colided g)
-  (
+(define (update-lom lom loi)
+  (cond [(empty? lom) empty]
+        [else
+         (if (hits? (first lom) loi)
+             (update-lom (rest lom) loi)
+             (cons (first lom) (update-lom (rest lom) loi)))]))
 
-;; AlienList -> AlienList
-;; Advance all the aliens
-(check-expect (advance-aliens empty) empty)
-(check-expect (advance-aliens AL2) (list (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false)
-										 (make-alien ALIEN-SHAPE (+ 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) true)))
+;; Missile ListOfInvader -> Boolean
+;; produce true if the missile hits an invader
+(check-expect (hits? M1 LOI1) false)
+(check-expect (hits? M2 LOI1) true)
 
-(define (advance-aliens al)
-		(cond [(empty? al) empty]
-			  [else (cons (get-advanced-alien (first al)) (advance-aliens (rest al)))]))
-
-;; Alien -> Alien
-;; Consumes an alien and produces a new one with the correct new co-ordinates
-(check-expect (get-advanced-alien A1) (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false))
-(check-expect (get-advanced-alien A2) (make-alien ALIEN-SHAPE (+ 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) true))
-(check-expect (get-advanced-alien (make-alien ALIEN-SHAPE ALIEN-SPEED 10 false))
-								  (make-alien ALIEN-SHAPE 0 (+ 10 ALIEN-SPEED) true)) ;; change direction
-(check-expect (get-advanced-alien (make-alien ALIEN-SHAPE (- WIDTH ALIEN-SPEED) 10 true))
-								  (make-alien ALIEN-SHAPE WIDTH (+ 10 ALIEN-SPEED) false)) ;; change direction
-
-(define (get-advanced-alien a)
-  (cond [(and (boolean=? (alien-direction a) true) (< (+ (alien-x a) ALIEN-SPEED) WIDTH))
-			(make-alien ALIEN-SHAPE (+ (alien-x a) ALIEN-SPEED) (+ (alien-y a) ALIEN-SPEED) true)]
-		[(and (boolean=? (alien-direction a) true) (>= (+ (alien-x a) ALIEN-SPEED) WIDTH))
-			(make-alien ALIEN-SHAPE WIDTH (+ (alien-y a) ALIEN-SPEED) false)]
-		[(and (boolean=? (alien-direction a) false) (> (- (alien-x a) ALIEN-SPEED) 0))
-			(make-alien ALIEN-SHAPE (- (alien-x a) ALIEN-SPEED) (+ (alien-y a) ALIEN-SPEED) false)]
-		[else (make-alien ALIEN-SHAPE 0 (+ (alien-y a) ALIEN-SPEED) true)]))
+(define (hits? m loi)
+  (cond [(empty? loi) false]
+        [else
+         (if (and (<= (- (invader-x (first loi)) HIT-RANGE) (missile-x m) (+ (invader-x (first loi)) HIT-RANGE))
+                  (<= (- (invader-y (first loi)) HIT-RANGE) (missile-y m) (+ (invader-y (first loi)) HIT-RANGE)))
+             true
+             (hits? m (rest loi)))]))
 
 
-;; BulletList -> BulletList
-;; Advance all bullets
-(check-expect (advance-bullets empty) empty)
-(check-expect (advance-bullets BL2) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
-(check-expect (advance-bullets (list (make-bullet BULLTET-SHAPE 10 HEIGHT))) empty) ;;remove bullets when they go out of the screen
-(check-expect (advance-bullets (list (make-bullet BULLTET-SHAPE 10 HEIGHT) B1)) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
+;; ListOfMissile ListOfInvader -> ListOfInvader
+;; remove the invader that is hit by a missile (from the list)
+(check-expect (update-loi LOM1 LOI1) (list (make-invader 100 100 -10)))
 
-(define (advance-bullets bl)
-		(cond [(empty? bl) empty]
-			  [(> (+ (bullet-y (first bl)) BULLET-SPEED) HEIGHT) (advance-bullets (rest bl))]
-			  [else (cons (make-bullet BULLTET-SHAPE (bullet-x (first bl)) (- (bullet-y (first bl)) BULLET-SPEED))
-						  (advance-bullets (rest bl)))]))
-		
 
-;; Game -> Image
-;; render all items in their propper positions
-(check-expect (render-world G1) (place-images
-                                 (list TANK-SHAPE (points-img P1))
-								 (list (make-posn (/ WIDTH 2) TANK-Y)
-									   (make-posn POINTS-X POINTS-Y)) MTS))
-(check-expect (render-world (make-game T1 (list A1 A3) (list B1 B2) P2 true))
-			  (place-images (list TANK-SHAPE ALIEN-SHAPE ALIEN-SHAPE BULLTET-SHAPE BULLTET-SHAPE (points-img P2))
-							(list (make-posn 20 TANK-Y) (make-posn 10 20)
-								  (make-posn 20 30) (make-posn 30 810)
-								  (make-posn 10 900) (make-posn POINTS-X POINTS-Y)) MTS))
+(define (update-loi lom loi)
+  (cond [(empty? loi) empty]
+        [else
+         (if (is-hit? lom (first loi))
+             (update-loi lom (rest loi))
+             (cons (first loi) (update-loi lom (rest loi))))]))
 
-(define (render-world g)
-	(place-images (get-images-list g)
-                      (get-positions g) MTS))
+;; ListOfMissile Invader -> Boolean
+;; produce true if the invader is hit by missile
+(check-expect (is-hit? LOM1 (make-invader 100 100 -10)) false)
+(check-expect (is-hit? LOM1 I1) true)
 
-;; Game -> ListOfImage
-;; Takes the game and produces an image for every object in it
-(check-expect (get-images-list G1) (list TANK-SHAPE (points-img P1)))
-(check-expect (get-images-list G2) (list TANK-SHAPE ALIEN-SHAPE ALIEN-SHAPE BULLTET-SHAPE BULLTET-SHAPE (points-img P2)))
+;(define (is-hit? lom i) false) ;stub
 
-(define (get-images-list g)
-  (flatten (cons TANK-SHAPE (cons (get-alien-images (game-alienList g)) 
-		(cons (get-bullet-images (game-bulletList g)) (cons (points-img (game-points g)) empty))))))
-																								
-;; AliensList -> ListOfImage
-;; Takes a list of aliens and returns their images
-(check-expect (get-alien-images empty) empty)
-(check-expect (get-alien-images AL2) (list ALIEN-SHAPE ALIEN-SHAPE))
+(define (is-hit? lom i)
+  (cond [(empty? lom) false]
+        [else
+         (if (and (<= (- (invader-x i) HIT-RANGE) (missile-x (first lom)) (+ (invader-x i) HIT-RANGE))
+                  (<= (- (invader-y i) HIT-RANGE) (missile-y (first lom)) (+ (invader-y i) HIT-RANGE)))
+             true
+             (is-hit? (rest lom) i))]))
 
-(define (get-alien-images al)
-  (cond [(empty? al) empty]
-		[else (cons ALIEN-SHAPE (get-alien-images (rest al)))]))
 
-;; BulletList -> ListOfImage
-;; Takes a list of bullets and returns their images
-(check-expect (get-bullet-images empty) empty)
-(check-expect (get-bullet-images BL2) (list BULLTET-SHAPE))
 
-(define (get-bullet-images bl)
-  (cond [(empty? bl) empty]
-		[else (cons BULLTET-SHAPE (get-bullet-images (rest bl)))]))
+;; ListOfInvader -> ListOfInvader
+;; produce the updated list of invaders
+(check-random (update-invaders empty) (if (< (random INVADE-RATE) 5)
+                                          (cons (make-invader (random WIDTH) -10 INVADER-X-SPEED) empty)
+                                          empty))
+(check-random (update-invaders (list (make-invader 150 100 12) (make-invader 100 100 -12)))
+              (if (< (random INVADE-RATE) 5)
+                  (list  (make-invader 162 112 12) (make-invader 88 112 -12) (make-invader (random WIDTH) -10 INVADER-X-SPEED))
+                  (list (make-invader 162 112 12) (make-invader 88 112 -12))))
 
-;; Game -> ListOfPositions
-;; Takes the game and produces an posn for every object in it
-(check-expect (get-positions G1) 
-			  (list (make-posn (tank-x (game-tank G1)) TANK-Y) (make-posn POINTS-X POINTS-Y)))
-(check-expect (get-positions G2) (list (make-posn 20 TANK-Y) (make-posn 10 20)
-								  (make-posn 20 30) (make-posn 30 810)
-								  (make-posn 10 900) (make-posn POINTS-X POINTS-Y)))
 
-(define (get-positions g)
-  (flatten (cons (make-posn (tank-x (game-tank g)) TANK-Y)
-				 (cons (get-alien-positions (game-alienList g))
-					   (cons (get-bullet-positions (game-bulletList g))
-							 (cons (make-posn POINTS-X POINTS-Y) empty))))))
-																								
-;; AliensList -> ListOfPosn
-;; Takes a list of aliens and returns their posn
-(check-expect (get-alien-positions empty) empty)
-(check-expect (get-alien-positions AL3) (list (make-posn 10 20) (make-posn 20 30)))
+(define (update-invaders loi)
+  (cond [(empty? loi) (if (< (random INVADE-RATE) 5)
+                          (cons (make-invader (random WIDTH) -10 INVADER-X-SPEED) empty)
+                          empty)]
+        [else
+         (cons (update-invader (first loi))
+               (update-invaders (rest loi)))]))
 
-(define (get-alien-positions al)
-  (cond [(empty? al) empty]
-		[else (cons (make-posn (alien-x (first al)) (alien-y (first al)))
-							   (get-alien-positions (rest al)))]))
+;; Invader -> Invader
+;; produce the updated invader
+;; x increases/decreases if dx is positive/negative respectively
+;; y always increases
+;; when an invader hits the wall it reflects from it
+(check-expect (update-invader (make-invader 150 100 12)) (make-invader 162 112 12))
+(check-expect (update-invader (make-invader 100 100 -12)) (make-invader 88 112 -12))
+(check-expect (update-invader (make-invader INVADER-WIDTH/2 100 -12)) (make-invader INVADER-WIDTH/2 100 12))
+(check-expect (update-invader (make-invader (- WIDTH INVADER-WIDTH/2) 100 12)) (make-invader (- WIDTH INVADER-WIDTH/2) 100 -12))
 
-;; BulletList -> ListOfPosn
-;; Takes a list of bullets and returns their positions
-(check-expect (get-bullet-positions empty) empty)
-(check-expect (get-bullet-positions BL2) (list (make-posn 30 810)))
+;(define (update-invader i) i) ;stub
 
-(define (get-bullet-positions bl)
-  (cond [(empty? bl) empty]
-		[else (cons (make-posn (bullet-x (first bl)) (bullet-y (first bl)))
-					(get-bullet-positions (rest bl)))]))
+(define (update-invader invader)
+  (if (or (<= (+ (invader-x invader) (invader-dx invader)) INVADER-WIDTH/2) (>= (+ (invader-x invader) (invader-dx invader)) (- WIDTH INVADER-WIDTH/2)))
+      (make-invader (invader-x invader)
+                    (invader-y invader)
+                    (- (invader-dx invader)))
+      (make-invader (+ (invader-x invader) (invader-dx invader))
+                    (+ (invader-y invader) (abs (invader-dx invader)))
+                    (invader-dx invader))))
+
+
+;; ListOfMissile -> ListOfMissile
+;; produce the updated list of missiles
+;; delete the missiles that fly out of the screen
+(check-expect (update-missiles empty) empty)
+(check-expect (update-missiles (list (make-missile 150 300) (make-missile 100 200)))
+              (list (make-missile 150 290) (make-missile 100 190)))
+(check-expect (update-missiles (list (make-missile 150 300) (make-missile 100 (- MISSILE-HEIGHT/2))))
+              (list (make-missile 150 290)))
+
+
+(define (update-missiles lom)
+  (cond [(empty? lom) empty]
+        [else
+         (if (on-screen? (first lom))
+             (cons (update-missile (first lom))
+                   (update-missiles (rest lom)))
+             (update-missiles (rest lom)))]))
+
+
+;; Missile -> Boolean
+;; produce true if the missile is visible on the screen
+(check-expect (on-screen? (make-missile 100 200)) true)
+(check-expect (on-screen? (make-missile 150 (- MISSILE-HEIGHT/2))) false)
+
+(define (on-screen? m)
+  (> (missile-y m) (- MISSILE-HEIGHT/2)))
+
+
+;; Missile -> Missile
+;; produce the updated position of missile
+(check-expect (update-missile (make-missile 150 300)) (make-missile 150 290))
+(check-expect (update-missile (make-missile 100 200)) (make-missile 100 190))
+
+(define (update-missile m)
+  (make-missile (missile-x m) (- (missile-y m) MISSILE-SPEED)))
+
+;; Tank -> Tank
+;; produce the updated position of the tank
+;; if the tank hits the wall it changes direction
+(check-expect (update-tank (make-tank 50 1)) (make-tank 52 1))
+(check-expect (update-tank (make-tank 50 -1)) (make-tank 48 -1))
+(check-expect (update-tank (make-tank  TANK-WIDTH/2 -1)) (make-tank TANK-WIDTH/2 1))
+(check-expect (update-tank (make-tank (- WIDTH TANK-WIDTH/2) 1)) (make-tank (- WIDTH TANK-WIDTH/2) -1))
+
+(define (update-tank t)
+  (if (or (<= (+ (tank-x t) (* TANK-SPEED (tank-dir t))) TANK-WIDTH/2) (>= (+ (tank-x t) (* TANK-SPEED (tank-dir t))) (- WIDTH TANK-WIDTH/2)))
+      (make-tank (tank-x t) (- (tank-dir t)))
+      (make-tank (+ (tank-x t) (* TANK-SPEED (tank-dir t))) (tank-dir t))))
+
+(define (render g) g)
 
 (test)
 ;;(main G1)
