@@ -110,8 +110,8 @@
 (check-expect (handle-tick G1) G1) ;; Return the same world if no enemies and bullets exist
 (check-expect (handle-tick G2) (make-game T1 (list (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false) 
 												   (make-alien ALIEN-SHAPE (+ 20 ALIEN-SPEED) (+ 30 ALIEN-SPEED) true))
-										  (list (make-bullet BULLTET-SHAPE 30 (+ 810  BULLET-SPEED))
-												(make-bullet BULLTET-SHAPE 10 (+ 900  BULLET-SPEED)))
+										  (list (make-bullet BULLTET-SHAPE 30 (- 810  BULLET-SPEED))
+												(make-bullet BULLTET-SHAPE 10 (- 900  BULLET-SPEED)))
 										  P2 true)) ;; advance the game normaly
 
 (define (handle-tick g)
@@ -152,11 +152,11 @@
 ;; BulletList -> BulletList
 ;; Advance all bullets
 (check-expect (advance-bullets empty) empty)
-(check-expect (advance-bullets BL2) (list (make-bullet BULLTET-SHAPE 30 (+ 810 BULLET-SPEED))))
+(check-expect (advance-bullets BL2) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
 
 (define (advance-bullets bl)
 		(cond [(empty? bl) empty]
-			  [else (cons (make-bullet BULLTET-SHAPE (bullet-x (first bl)) (+ (bullet-y (first bl)) BULLET-SPEED))
+			  [else (cons (make-bullet BULLTET-SHAPE (bullet-x (first bl)) (- (bullet-y (first bl)) BULLET-SPEED))
 						  (advance-bullets (rest bl)))]))
 		
 
@@ -239,3 +239,4 @@
 
 (test)
 ;;(main G1)
+;;(main G2)
