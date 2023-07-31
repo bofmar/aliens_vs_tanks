@@ -104,7 +104,7 @@
   (big-bang g                       ; Game
     (on-tick   update-game)         ; Game -> Game
     (to-draw   render)              ; Game -> Image
-    ;;(stop-when hit-floor? render)   ; Game -> Boolean
+    (stop-when landed? render)   ; Game -> Boolean
     (on-key    handle-key)))        ; Game KeyEvent -> Game
 
 ;; =================================================================================================
@@ -306,9 +306,11 @@
                    BACKGROUND))))))
 
 (define (render s)
-  (render-invaders (game-invaders s)
+  (if (boolean=? (landed? s) true)
+	(place-image (text "GAME OVER" 36 "white") (/ WIDTH 2) (/ HEIGHT 2) BACKGROUND)
+	(render-invaders (game-invaders s)
                    (render-missiles (game-missiles s)
-                                    (render-tank (game-tank s) BACKGROUND))))
+                                    (render-tank (game-tank s) BACKGROUND)))))
 
 ;; ListOfInvader Image -> Image
 ;; render list of invader on a background image
@@ -410,6 +412,35 @@
         [(key=? ke " ") (make-game (game-invaders s) (cons (make-missile (tank-x (game-tank s)) (- HEIGHT TANK-HEIGHT)) (game-missiles s)) (game-tank s))]
 		[(key=? ke "r") G0]
         [else s]))
+
+;; =================================================================================================
+;; STOP-WHEN Functions:
+
+;; Game -> Boolean
+;; produce true if any invader in the game hits the floor
+(check-expect (landed? (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 1))) false)
+(check-expect (landed? (make-game (list (make-invader 150 100 12) (make-invader 100 HEIGHT -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 1))) true)
+
+(define (landed? s)
+  (hit-floor-inv? (game-invaders s)))
+
+
+;; ListOfInvader -> Boolean
+;; produce true if any invader hits the floor
+(check-expect (hit-floor-inv? (list (make-invader 150 100 12) (make-invader 100 100 -12))) false)
+(check-expect (hit-floor-inv? (list (make-invader 150 100 12) (make-invader 100 HEIGHT -12))) true)
+
+
+(define (hit-floor-inv? loi)
+  (cond [(empty? loi) false]
+        [else
+         (if (>= (invader-y (first loi)) HEIGHT)
+             true
+             (hit-floor-inv? (rest loi)))]))
 
 (test)
 (main G0)
