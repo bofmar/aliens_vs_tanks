@@ -103,11 +103,11 @@
 (define (main g)
   (big-bang g                       ; Game
     (on-tick   update-game)         ; Game -> Game
-    (to-draw   render)))              ; Game -> Image
+    (to-draw   render)              ; Game -> Image
     ;;(stop-when hit-floor? render)   ; Game -> Boolean
-    ;;(on-key    handle-key)))        ; Game KeyEvent -> Game
+    (on-key    handle-key)))        ; Game KeyEvent -> Game
 
-;; =================
+;; =================================================================================================
 ;; ON-TICK Functions
 
 ;; Game -> Game
@@ -366,5 +366,50 @@
                (tank-x t)
                (- HEIGHT TANK-HEIGHT/2)
                b))
+;; =================================================================================================
+;; ON-KEY Functions:
+
+;; Game KeyEvent -> Game
+;; handle keys
+(check-expect (handle-key (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 1)) "right")
+              (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                         (list (make-missile 150 300) (make-missile 100 200))
+                         (make-tank 50 1)))
+(check-expect (handle-key (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 -1)) "right")
+              (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                         (list (make-missile 150 300) (make-missile 100 200))
+                         (make-tank 50 1)))
+(check-expect (handle-key (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 1)) "left")
+              (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                         (list (make-missile 150 300) (make-missile 100 200))
+                         (make-tank 50 -1)))
+(check-expect (handle-key (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 -1)) "left")
+              (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                         (list (make-missile 150 300) (make-missile 100 200))
+                         (make-tank 50 -1)))
+(check-expect (handle-key (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                                     (list (make-missile 150 300) (make-missile 100 200))
+                                     (make-tank 50 1)) " ")
+              (make-game (list (make-invader 150 100 12) (make-invader 100 100 -12))
+                         (list (make-missile 50 (- HEIGHT TANK-HEIGHT)) (make-missile 150 300) (make-missile 100 200))
+                         (make-tank 50 1)))
+(check-expect (handle-key GX "a") GX)
+
+              
+(define (handle-key s ke)
+  (cond [(key=? ke "left") (make-game (game-invaders s) (game-missiles s) (make-tank (tank-x (game-tank s)) -1))]
+        [(key=? ke "right") (make-game (game-invaders s) (game-missiles s) (make-tank (tank-x (game-tank s)) 1))]
+        [(key=? ke " ") (make-game (game-invaders s) (cons (make-missile (tank-x (game-tank s)) (- HEIGHT TANK-HEIGHT)) (game-missiles s)) (game-tank s))]
+		[(key=? ke "r") G0]
+        [else s]))
+
 (test)
 (main G0)
