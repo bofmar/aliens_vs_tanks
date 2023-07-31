@@ -89,6 +89,8 @@
 ;; interp. If state is true then the game goes on. Else it's game over.
 (define G1 (make-game T0 AL1 BL1 P1 true))
 (define G2 (make-game T1 (list A1 A3) (list B1 B2) P2 true))
+(define G3 (make-game T0 (list (make-alien ALIEN-SHAPE 10 10) (make-bullet BULLTET-SHAPE 10 10) P1 true))) ;; for testing killing aliens
+
 
 
 ;; =================
@@ -149,13 +151,16 @@
 			(make-alien ALIEN-SHAPE (- (alien-x a) ALIEN-SPEED) (+ (alien-y a) ALIEN-SPEED) false)]
 		[else (make-alien ALIEN-SHAPE 0 (+ (alien-y a) ALIEN-SPEED) true)]))
 
+
 ;; BulletList -> BulletList
 ;; Advance all bullets
 (check-expect (advance-bullets empty) empty)
 (check-expect (advance-bullets BL2) (list (make-bullet BULLTET-SHAPE 30 (- 810 BULLET-SPEED))))
+(check-expect (advance-bullets (list (make-bullet BULLTET-SHAPE 10 HEIGHT))) empty) ;;remove bullets when they go out of the screen
 
 (define (advance-bullets bl)
 		(cond [(empty? bl) empty]
+			  [(> (bullet-y (fist bl)) HEIGHT) (cons empty (advance-bullets (rest bl)))]
 			  [else (cons (make-bullet BULLTET-SHAPE (bullet-x (first bl)) (- (bullet-y (first bl)) BULLET-SPEED))
 						  (advance-bullets (rest bl)))]))
 		
