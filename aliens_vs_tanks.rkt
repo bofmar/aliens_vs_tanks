@@ -45,7 +45,7 @@
 (define-struct alien (img x y direction))
 ;; Alien is (make-alien IMAGE NUMBER NUMBER BOOLEAN)
 ;; interp. an ellipse with an x and y position and a true or false direction
-;; (true means the alien is movig left, false that it moves right)
+;; (true means the alien is movig rigth, false that it moves left)
 (define A1 (make-alien ALIEN-SHAPE 10 20 false)) ;; alien moving right
 (define A2 (make-alien ALIEN-SHAPE 10 20 true)) ;; alien moving left
 (define A3 (make-alien ALIEN-SHAPE 20 30 true)) ;; alien moving left
@@ -104,11 +104,55 @@
             ;;(stop-when ...)      ; WS -> Boolean
             ;;(on-key    ...)))    ; WS KeyEvent -> WS
 
-;; WS -> WS
-;; produce the next ...
+;; Game -> Game
+;; produce the next game state
 ;; !!!
-(define (handle-tick g) g)
+(check-expect (handle-tick G1) G1) ;; Return the same world if no enemies and bullets exist
+(check-expect (handle-tick G2) (make-game T1 (list (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false) 
+												   (make-alien ALIEN-SHAPE (+ 20 ALIEN-SPEED) (+ 31 ALIEN-SPEED) true))
+										  (list (make-bullet BULLTET-SHAPE 30 (+ 810  BULLET-SPEED))
+												(make-bullet BULLTET-SHAPE 10 (+ 900  BULLET-SPEED)))
+										  P2 true)) ;; advance the game normaly
 
+(define (handle-tick g)
+  (flatten (cons (game-tank g) (cons (advance-aliens (game-alienList g))
+							  (cons (advance-bullets (game-bulletList g))
+									(cons (game-points g)
+                                                                              (cons true empty)))))))
+
+;; AlienList -> AlienList
+;; Advance all the aliens
+(check-expect (advance-aliens empty) empty)
+(check-expect (advance-aliens AL2) (list (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false)
+										 (make-alien ALIEN-SHAPE (+ 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) true)))
+
+(define (advance-aliens al)
+		(cond [(empty? al) empty]
+			  [else (cons (get-advanced-alien (first al)) (advance-aliens (rest al)))]))
+
+;; Alien -> Alien
+;; Consumes an alien and produces a new one with the correct new co-ordinates
+(check-expect (get-advanced-alien A1) (make-alien ALIEN-SHAPE (- 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) false))
+(check-expect (get-advanced-alien A2) (make-alien ALIEN-SHAPE (+ 10 ALIEN-SPEED) (+ 20 ALIEN-SPEED) true))
+(check-expect (get-advanced-alien (make-alien ALIEN-SHAPE ALIEN-SPEED 10 false))
+								  (make-alien ALIEN-SHAPE 0 (+ 10 ALIEN-SPEED) true)) ;; change direction
+(check-expect (get-advanced-alien (make-alien ALIEN-SHAPE (- WIDTH ALIEN-SPEED) 10 true))
+								  (make-alien ALIEN-SHAPE WIDTH (+ 10 ALIEN-SPEED) false)) ;; change direction
+
+(define (get-advanced-alien a)
+  (cond [(and (boolean=? (alien-direction a) true) (< (+ (alien-x a) ALIEN-SPEED) WIDTH))
+			(make-alien ALIEN-SHAPE (+ (alien-x a) ALIEN-SPEED) (+ (alien-y a) ALIEN-SPEED) true)]
+		[(and (boolean=? (alien-direction a) true) (>= (+ (alien-x a) ALIEN-SPEED) WIDTH))
+			(make-alien ALIEN-SHAPE WIDTH (+ (alien-y a) ALIEN-SPEED) false)]
+		[(and (boolean=? (alien-direction a) false) (> (- (alien-x a) ALIEN-SPEED) 0))
+			(make-alien ALIEN-SHAPE (- (alien-x a) ALIEN-SPEED) (+ (alien-y a) ALIEN-SPEED) false)]
+		[else (make-alien ALIEN-SHAPE 0 (+ (alien-y a) ALIEN-SPEED) true)]))
+
+;; BulletList -> BulletList
+;; Advance all bullets
+
+(define (advance-bullets bl) bl)
+		
 
 ;; Game -> Image
 ;; render all items in their propper positions
@@ -188,4 +232,4 @@
 					(get-bullet-positions (rest bl)))]))
 
 (test)
-(main G1)
+;;(main G1)
